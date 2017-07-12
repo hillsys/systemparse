@@ -101,10 +101,12 @@ sub GetRoutesAndGateway {
 }
 
 sub GetNameServers {
-	my @output = split('\n', `cat /etc/resolv.conf | grep nameserver`); #Because not all name servers are listed in /etc/network/interfaces for dhcp clients, use /etc/resolv.conf
+	#Because not all name servers are listed in /etc/network/interfaces for dhcp clients, use /etc/resolv.conf
+	my @output = split('\n', `cat /etc/resolv.conf | grep nameserver`); 
 	
 	for (my $loopCounter = 0; $loopCounter < scalar(@output); $loopCounter++) {
 		$output[$loopCounter] =~ s/.*\s(\d*\.\d*\.\d*\.\d*)/$1/;
+		$output[$loopCounter] =~ s/\s+$//;
 	}
 	
 	return @output;
@@ -183,22 +185,13 @@ sub XMLOutput {
 	for (my $loopCounter = 1; $loopCounter < scalar(@interfaceData); $loopCounter++) {
 		print "\t<Network>\n";
 		
-		for (my $printCounter = 0; $printCounter < 3; $printCounter++) {
-			print "\t\t<$interfaceData[0][$printCounter]>$interfaceData[$loopCounter][$printCounter]</$interfaceData[0][$printCounter]>\n";
-		}
-		
-		if($interfaceData[$loopCounter][3]) {
-			print "\t\t<$interfaceData[0][3]>$interfaceData[$loopCounter][3]</$interfaceData[0][3]>\n";
-		}
-		else {
-			print "\t\t<$interfaceData[0][3]/>\n";
-		}
-		
-		if($interfaceData[$loopCounter][4]) {
-			print "\t\t<$interfaceData[0][4]>$interfaceData[$loopCounter][4]</$interfaceData[0][4]>\n";
-		}
-		else {
-			print "\t\t<$interfaceData[0][4]/>\n";
+		for (my $printCounter = 0; $printCounter < 5; $printCounter++) {
+			if($interfaceData[$loopCounter][$printCounter]) {
+				print "\t\t<$interfaceData[0][$printCounter]>$interfaceData[$loopCounter][$printCounter]</$interfaceData[0][$printCounter]>\n";
+			}
+			else {
+				print "\t\t<$interfaceData[0][$printCounter]/>\n";
+			}
 		}
 			
 		print "\t</Network>\n";
@@ -230,25 +223,22 @@ sub JSONOutput {
 	
 	for (my $loopCounter = 1; $loopCounter < scalar(@interfaceData); $loopCounter++) {
 		print "      {\n";
-		print "        \"$interfaceData[0][0]\": \"$interfaceData[$loopCounter][0]\",\n";
-		print "        \"$interfaceData[0][1]\": \"$interfaceData[$loopCounter][1]\",\n";
-		print "        \"$interfaceData[0][2]\": \"$interfaceData[$loopCounter][2]\"";
-		
-		if($interfaceData[$loopCounter][3]){
-			print ",\n        \"$interfaceData[0][3]\": \"$interfaceData[$loopCounter][3]\"";
-		}
-		
-		if($interfaceData[$loopCounter][4]){
-			print ",\n        \"$interfaceData[0][4]\": \"$interfaceData[$loopCounter][4]\"";
-		}
-		
-		print "\n      }";
-
-		if($loopCounter + 1 == scalar(@interfaceData)) {
-			print "\n";
-		}
-		else {
-			print ",\n";
+		for (my $printCounter = 0; $printCounter < 5; $printCounter++) {
+			if($interfaceData[$loopCounter][$printCounter]) {
+				print "        \"$interfaceData[0][$printCounter]\": \"$interfaceData[$loopCounter][$printCounter]\"";
+				if($interfaceData[$loopCounter][$printCounter + 1]) {
+					print ",\n";
+				}
+				else {
+					print "\n      }";
+					if($loopCounter + 1 == scalar(@interfaceData)) {
+						print "\n";
+					}
+					else {
+						print ",\n";
+					}
+				}
+			}
 		}
 	}
 	
@@ -308,24 +298,15 @@ sub YAMLOutput {
 			print "  -\n";
 		}
 		
-		for (my $printCounter = 0; $printCounter < 3; $printCounter++) {
-			print " " x YAMLSpacing($interfaceCount) . "   $interfaceData[0][$printCounter]: \"$interfaceData[$loopCounter][$printCounter]\"\n";
-		}
-		
-		print " " x YAMLSpacing($interfaceCount) . "   $interfaceData[0][3]: \"";
-		if($interfaceData[$loopCounter][3]) {
-			print "$interfaceData[$loopCounter][3]\"\n";
-		}
-		else {
-			print "\"\n";
-		}
-		
-		print " " x YAMLSpacing($interfaceCount) . "   $interfaceData[0][4]: \"";
-		if($interfaceData[$loopCounter][4]) {
-			print "$interfaceData[$loopCounter][4]\"\n";
-		}
-		else {
-			print "\"\n";
+		for (my $printCounter = 0; $printCounter < 5; $printCounter++) {
+			print " " x YAMLSpacing($interfaceCount) . "   $interfaceData[0][$printCounter]: \"";
+			
+			if($interfaceData[$loopCounter][$printCounter]){
+				print "$interfaceData[$loopCounter][$printCounter]\"\n";
+			}
+			else {
+				print "\"\n";
+			}
 		}
 	}
 	
@@ -358,7 +339,6 @@ sub Help {
 	my $output = "Usage: $0 ";
 	$output = $output . "\n\tGNU\t\tPOSIX\t\tDescription";
 	$output = $output . "\n\t--show\t\t-s\t\tDisplay on screen formatting.";
-	$output = $output . "\n\t--csv\t\t-c\t\tSend output as comma separated values.";
 	$output = $output . "\n\t--json\t\t-j\t\tSend output in JSON format.";
 	$output = $output . "\n\t--xml\t\t-x\t\tSend output in XML format.";
 	$output = $output . "\n\t--yaml\t\t-y\t\tSend output in YAML format.";
